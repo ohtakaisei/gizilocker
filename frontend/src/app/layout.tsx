@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
+import { Geist } from "next/font/google";
 import "./globals.css";
+
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist",
+});
 
 export const metadata: Metadata = {
   title: "Gizilocker - AI議事録生成",
@@ -12,8 +18,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja">
-      <body className="bg-gray-50 text-gray-900 min-h-screen">{children}</body>
+    <html lang="ja" className={geist.variable}>
+      <body className="min-h-screen font-[family-name:var(--font-geist)] antialiased">
+        <div className="bg-mesh" />
+        <div className="relative z-10">{children}</div>
+      </body>
     </html>
   );
 }

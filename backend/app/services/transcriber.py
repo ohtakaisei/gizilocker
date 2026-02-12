@@ -1,31 +1,22 @@
-import tempfile
+import io
 
-from faster_whisper import WhisperModel
+from openai import OpenAI
 
 from app.config import settings
 
-_model: WhisperModel | None = None
-
-
-def _get_model() -> WhisperModel:
-    global _model
-    if _model is None:
-        _model = WhisperModel(settings.whisper_model_size, compute_type="int8")
-    return _model
-
 
 def transcribe(wav_data: bytes) -> tuple[str, str, float]:
-    """Transcribe WAV data. Returns (text, language, duration)."""
-    model = _get_model()
+    """Transcribe WAV data via OpenAI Whisper API. Returns (text, language, duration)."""
+    client = OpenAI(api_key=settings.openai_api_key)
 
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-        f.write(wav_data)
-        f.flush()
-        segments, info = model.transcribe(
-            f.name,
-            language="ja",
-            vad_filter=True,
-        )
+    audio_file = io.BytesIO(wav_data)
+    audio_file.name = "audio.wav"
 
-    text = "".join(seg.text for seg in segments)
-    return text, info.language, info.duration
+    result = client.audio.transcriptions.create(
+        model="whisper-1",
+        file=audio_file,
+        language="ja",
+        response_format="verbose_json",
+    )
+
+    return result.text, result.language, result.duration

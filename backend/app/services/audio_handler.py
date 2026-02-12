@@ -16,16 +16,15 @@ def combine_to_wav(session: Session) -> bytes:
     if not session.audio_chunks:
         raise ValueError("No audio chunks recorded")
 
-    combined = AudioSegment.empty()
-    for chunk in session.audio_chunks:
-        segment = AudioSegment.from_file(io.BytesIO(chunk), format="webm")
-        combined += segment
+    # Concatenate raw bytes first — MediaRecorder chunks share a single
+    # webm header (only the first chunk contains it), so they must be
+    # joined before decoding.
+    raw_webm = b"".join(session.audio_chunks)
+    combined = AudioSegment.from_file(io.BytesIO(raw_webm), format="webm")
 
     # Convert to 16kHz mono WAV for Whisper
     combined = combined.set_frame_rate(16000).set_channels(1)
 
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-        combined.export(f.name, format="wav")
-        f.seek(0)
-        with open(f.name, "rb") as wav_file:
-            return wav_file.read()
+    buf = io.BytesIO()
+    combined.export(buf, format="wav")
+    return buf.getvalue()
